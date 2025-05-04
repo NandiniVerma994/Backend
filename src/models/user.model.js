@@ -50,31 +50,45 @@ const userSchema = new Schema( {
 
 //befor saving the data we just want to encrypt the password so we use preHook
 //encryption takes time so async
-//without if everytime it will change(encrypt) the password like when we change our profile pic and try to save then before that it wil do
-//we dont want this so we do it such that if we try to modify the password/ whenever we will do anything on password then only this should execute
+//without if everytime it will change(encrypt) the password like when we change our profile
+// pic and try to save then before that it wil do
+//we dont want this so we do it such that if we try to modify the password/ whenever we
+//  will do anything on password then only this should execute
+// pre is a middleware hook — it runs before a certain action happens on the database.
+// pre("save", callback) → runs before a document is saved to the database.
 userSchema.pre("save", async function (next) {
-    //is password is not modified then just move to next else first encrypt the password
+    //if password is not modified then just move to next else first encrypt the password
     if(!this.isModified("password")) return next();
     this.password = bcrypt.hash(this.password, 10)
     next()
 })
 
+//Password check method
+// Compares user’s input password with the encrypted password in the DB
 userSchema.methods.isPasswordCorrect = async function(password) {
     //compares if the password sent by the user and the encrypted one is correct or not then only allow for login
     return await bcrypt.compare(password, this.password)
 }
 
+// We define a custom method called generateAccessToken on the user schema.
 userSchema.methods.generateAccessToken = function(){
+    //we return a json web Token, jwt.sign is a function which takes some payload(data), encrypts it
+    //with a secret key, optionally adds an expiry time, produces a token string we can send
+    //to user
     return jwt.sign(
         {
             //this.username if coming from database
+            //mongodb document id
             _id: this._id,
             email: this.email,
             username: this.username,
             fullName: this.fullName
+            //when decoded the token will have this data
         },
+        // This is the secret key used to encrypt the token.
         process.env.ACCESS_TOKEN_SECRET,
         {
+            // expiresIn sets how long the token will stay valid.
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )

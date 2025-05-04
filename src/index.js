@@ -9,11 +9,15 @@ dotenv.config({
     path: './env'
 })
 
-//after database connection is done it will return a promise so we are handling it using then catch as its an asynchronous function
-//app.listen() starts the server and opens the network port, only after the server is listening it can accept http request like get, post, put and send response to the client
+//after database connection is done it will return a promise so we are handling it using
+//  then catch as its an asynchronous function
+//app.listen() starts the server and opens the network port, only after the server is 
+// listening it can accept http request like get, post, put and send response to the 
+// client
 //res.send() send a response for a specific request
 //the app listens for HTTP requests of client not the database
-//if the db connection fails, we dont want server to start bcz it cant fulfil requests without the database connection
+//if the db connection fails, we dont want server to start bcz it cant fulfil requests 
+// without the database connection
 //if db connecction is successful then only we start listening for client request
 //app.get ('/)...server decides and responds
 //app.get(path, callback)
