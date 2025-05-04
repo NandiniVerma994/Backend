@@ -32,4 +32,13 @@ app.use(express.static("public"))
 //“Use the cookie-parser middleware to automatically read and parse cookies from incoming requests.”
 app.use(cookieParser())
 
+//routes import
+import userRouter from './routes/user.routes.js'
+
+
+//routes declaration
+//when user types /users, we give control to userRouter
+app.use("/api/v1/users", userRouter)
+//http://localhost:8000/api/v1/users/register
+
 export { app }
