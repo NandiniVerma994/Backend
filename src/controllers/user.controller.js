@@ -1,8 +1,10 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
-import { User } from "../model/user.model.js";
+import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+
+
 
 //this method will register user
 const registerUser = asyncHandler( async (req, res) => {
@@ -30,7 +32,7 @@ const registerUser = asyncHandler( async (req, res) => {
     }
 
     //STEP3
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         //either of these two found then 
         $or: [{ username }, { email }]
     })
@@ -45,8 +47,13 @@ const registerUser = asyncHandler( async (req, res) => {
     //files ka access ho v skta aur nhi v , path of file deta h(av cloudinary pe upload nhi kiye h)
     //this will give us the path which multer has uploaded
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+    
     //check for avatar
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required")
@@ -68,7 +75,7 @@ const registerUser = asyncHandler( async (req, res) => {
         avatar: avatar.url,
         // coverimage ko check kro phle agr h toh usse url nikal lo nhi toh empty
         coverImage: coverImage?.url || "",
-        eamil,
+        email,
         password,
         username: username.toLowerCase()
     })
@@ -89,5 +96,12 @@ const registerUser = asyncHandler( async (req, res) => {
         new ApiResponse(200, createdUser, "User registered Successfully")
     )
 })
+
+// const registerUser = asyncHandler( async (req, res) => {
+//     res.status(200).json({
+//         message: "ok"
+//     })
+// })
+
 
 export {registerUser}
