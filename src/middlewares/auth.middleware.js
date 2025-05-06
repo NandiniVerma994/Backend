@@ -1,10 +1,10 @@
 //This middleware verifies if user is there or not
 // we are writing this in another becz we have to always know if the user is authentic or not like when the user
 // will like a post then we need to know if the user is authenticated or not
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler  } from "../utils/asyncHandler";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler  } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
-import {User} from "../models/user.model";
+import {User} from "../models/user.model.js";
 
 export const verifyJWT = asyncHandler(async(req, resizeBy, next) => {
     // if cookies send the accessToken or frontend
