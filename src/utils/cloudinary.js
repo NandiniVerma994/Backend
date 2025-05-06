@@ -9,6 +9,11 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+/*It first checks if localFilePath exists; if not, it returns null.
+If a file path exists, it calls cloudinary.uploader.upload() to upload the file.
+The resource_type: "auto" option lets Cloudinary detect the file type automatically.
+The await keyword waits for the upload to finish and stores the result in response
+//localfile path is the file to be uploaded*/
 const uploadOnCloudinary = async (localFilePath) => {
     try {
         if (!localFilePath) return null
