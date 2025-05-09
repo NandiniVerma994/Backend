@@ -3,6 +3,10 @@
 Model link
 https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj
 
+
+Important info
+https://chatgpt.com/share/681dee28-8910-8007-a593-57fed1db51ec
+
 #Access Token and Refresh Token
 When we log into an app like instagram or you tube, the server needs to know you are logged in for future request, so jwt(json web token comes into future) comes into picture
 It uses mainly 2 types of token:
@@ -146,6 +150,12 @@ A cloud service to upload, store, and manage images and videos.
 So we don’t store heavy media files on our server → we upload them to Cloudinary and store only the URL in the database.
 
 JWT(json web token) -> create + verify auth tokens
+You log into a website.
+The website needs to remember that you are logged in when you visit different pages
+✅ Instead of asking for your username & password every time, it gives you a token (a secret pass) after you log in once
+You show the token each time you visit a new page, and the website knows you are the same person.
+
+
 When a user logs in → backend creates a JWT.
 Backend sends that JWT to the frontend.
 Frontend stores the JWT in a cookie (or sometimes in localStorage).
@@ -170,3 +180,13 @@ Clean up any temporary storage.
 Without multer, you’d have no clean access to the file data, and Cloudinary’s upload function wouldn’t know what to upload.
 
 In short multer will first save the file into the local disk and then transfer it to cloudinary. Why not directly to cloudinary (reason given above)
+
+
+| ✅ **Plugin (.plugin)**                                 | ✅ **Schema method (.methods)**                                  |
+| ------------------------------------------------------ | --------------------------------------------------------------- |
+| Works on the **whole model (Video)**                   | Works on a **single document (a video instance)**               |
+| Adds **global methods** (like Video.aggregatePaginate) | Adds methods for **only 1 document** (like video.generateToken) |
+| Example: paginate all videos                           | Example: hash password for 1 video document                     |
+
+Pagination is not something you do on 1 video.
+Pagination is done on the whole collection of videos (many videos).

@@ -1,6 +1,11 @@
 import mongoose, {Schema} from "mongoose";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+// Imagine a phone book where names are listed alphabetically./
+// In a database (like MongoDB), if you have a username field, and you set index: true, 
+// it creates a special data structure (an index).
+// This index stores usernames in a sorted and quick-access format (like the phone book 
+// idea).
 
 const userSchema = new Schema( {
     username: {
@@ -15,7 +20,7 @@ const userSchema = new Schema( {
         type: String,
         required: true,
         unique: true,
-        lowercae: true,
+        lowercase: true,
         trim: true,
     },
     fullName: {
@@ -35,6 +40,8 @@ const userSchema = new Schema( {
     //stores array of videos watched references from videos
     watchHistory: [
         {
+            // This links to another collection (the Video collection).
+
             type: Schema.Types.ObjectId,
             ref: "Video"
         }
@@ -47,6 +54,11 @@ const userSchema = new Schema( {
         type: String
     }  
 }, {timestamps: true})
+// Adds two automatic fields:
+// createdAt ➔ when the user was created.
+// updatedAt ➔ when the user was last updated.
+
+
 
 //befor saving the data we just want to encrypt the password so we use preHook
 //encryption takes time so async

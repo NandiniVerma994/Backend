@@ -121,6 +121,10 @@ const registerUser = asyncHandler( async (req, res) => {
     // STEP6(user is talking to db) these all will be saved in db
     // create is a method of mongodb
     // save only urls of images on db
+    // User.create({...}) creates a new user document in your MongoDB database.
+
+// It also returns the full user document (the same type of object you'd get with .find()). 
+// it returns objects id also
     const user = await User.create({
         fullName,
         //avatar toh check ho gya h ki ye h ya nhi h
@@ -148,6 +152,7 @@ const registerUser = asyncHandler( async (req, res) => {
     }
 
     // STEP 10(apiresponse.js me yhi sb jaa rha h data jo created user me stored h)
+    // response returned to the frontend
     return res.status(201).json(
         new ApiResponse(200, createdUser, "User registered Successfully")
     )
@@ -196,6 +201,11 @@ const loginUser = asyncHandler( async (req, res) => {
     //ye cookies sirf server se modifiable hoti h 
     // frontend se nhi modify ho payega
     // this ensures tokens are stored safely in browser
+    // Only your server (backend) can read the cookie.
+// Frontend JavaScript CANNOT access it.(document.cookie is not accessible)
+// The cookie is automatically sent by the browser (but only if it's secure + httpOnly).
+
+
     const options = {
         httpOnly: true,// frontend js cannot access these cookies
         secure: true // cookies are sent over https connection so are secure
@@ -220,13 +230,15 @@ const loginUser = asyncHandler( async (req, res) => {
     )
 })
 
+// we run verifyJWT before the logout as logout is a protected action, the server must know who is making the
+//logout action
 const logoutUser = asyncHandler(async(req, res) => {
-    //Before executing this already verifyJwt will run
+    //Before executing this already verifyJwt will run as it is a middle ware 
     await User.findByIdAndUpdate(
         req.user._id,
         {
             $set: {
-                refreshToken: undefined
+                refreshToken: undefined // removes refresh token from the db
             }
         },
         {   // return me undefined refresh token return hoga
@@ -234,10 +246,11 @@ const logoutUser = asyncHandler(async(req, res) => {
             new: true
         },
     )
-
+    // HTTP = HyperText Transfer Protocol 
+    // HTTPS = HyperText Transfer Protocol Secure
     const options = {
-        httpOnly: true,
-        secure: true
+        httpOnly: true, // Ensures the cookies can't be accessed by JavaScript on the client side
+        secure: true //Ensures cookies are only sent over HTTPS (securing data transfer).
     }
 
     return res
@@ -245,10 +258,14 @@ const logoutUser = asyncHandler(async(req, res) => {
     .clearCookie("accessToken", options)
     //db se v hta liye h 
     .clearCookie("refreshToken", options)
+    // response sent to the frontend
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
+// When the access token expires, instead of asking the user to log in again, we use a refresh token
+//  to generate a new access token and refresh token.
 const refreshAccessToken = asyncHandler(async (req, res) => {
+    // req.body -> incase u sent it manually through frontend
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
     if(!incomingRefreshToken) {
@@ -260,13 +277,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         )
-    
+    // the token contains the user id,(fields with the generaterefreshtoken was id, and with access token 
+    // was id, email, username ) so we look up for the user by the id 
         const user = await User.findById(decodedToken?._id)
     
         if (!user) {
             throw new ApiError(401, "Invalid refresh token")
         }
-    
+        //extra layer of protection we check if the refresh token matches with the one in the db
+        // now user is holding th id and rest info (look above)
         if(incomingRefreshToken != user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used")
         }
@@ -276,8 +295,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
+        // access token will be generated and also a new refresh token and the old refresh token is invalidated
+        // If someone steals the old refresh token, it won’t work anymore once the new one is issued.
         const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
     
+        // frontend gets new accessToken
         return res
         .status(200)
         .cookie("accessToken", accessToken, options)
@@ -295,6 +317,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 })
 
 //will make the user change the current password
+// whenever we do anything user specific first we must verify who the user
 const changeCurrentPassword = asyncHandler(async(req, res) => {
     const {oldPassword, newPassword} = req.body
     const user = await User.findById(req.user?._id)
@@ -316,7 +339,7 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
 const getCurrentUser = asyncHandler(async(req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "current user fetched successfully")
+    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
     //we can access req.user bcz at this point already on req middleware has already run
     // and user has already been injected on the object 
 })
@@ -328,7 +351,8 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    // whenever talking to db we need to put awai
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -351,6 +375,8 @@ const updateUserAvatar = asyncHandler(async(req, res) =>{
         throw new ApiError(400, "Avatar file is missing")
     }
 
+    // Cloudinary sends back an object  like file url , public id and many more so we access
+    // using avatar.url
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if (!avatar.url) {
@@ -358,6 +384,7 @@ const updateUserAvatar = asyncHandler(async(req, res) =>{
     }
 
     const user = await User.findByIdAndUpdate(
+        // as verifyJWT has also run
         req.user?._id,
         {
             $set:{
@@ -405,6 +432,82 @@ const updateUserCoverImage = asyncHandler(async(req, res) =>{
     )
 })
 
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+    const {username} = req.params
+
+    if(!username?.trim()) {
+        throw new ApiError(400, "username is missing")
+    }
+
+    const channel = await User.aggregate([
+        {
+            // match is simila to where clause in sql
+            $match: {
+                //if username exists then to lowercase
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            //original user object ke andr fields add kiye h
+            $addFields: {
+                subscribersCount: {
+                    // we use $subscribers as subscribers has now become a field
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?. _id, "$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            // saari chizen ko nhi dunga project hone only selected chizon ko
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+
+    //because it comes in form of array
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
 // const registerUser = asyncHandler( async (req, res) => {
 //     res.status(200).json({
 //         message: "ok"
@@ -421,5 +524,6 @@ export {
         getCurrentUser,
         updateAccountDetails,
         updateUserAvatar,
-        updateUserCoverImage
+        updateUserCoverImage,
+        getUserChannelProfile
     }
