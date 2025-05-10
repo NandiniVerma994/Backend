@@ -237,8 +237,8 @@ const logoutUser = asyncHandler(async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined // removes refresh token from the db
+            $unset: {
+                refreshToken: 1 //(remove ths field from the document) removes refresh token from the db
             }
         },
         {   // return me undefined refresh token return hoga
@@ -438,7 +438,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
     if(!username?.trim()) {
         throw new ApiError(400, "username is missing")
     }
-
+    // here user is the channel
     const channel = await User.aggregate([
         {
             // match is simila to where clause in sql
@@ -448,6 +448,14 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             }
         },
         {
+            //user ke andr h now i want to find how many have subscribed to chai aur code
+            // user aur subscription -> left join perform krna h (user left me h )
+            // joining users with subscriptions  where users._id == subscriptions.channel
+            // this finds one channel has how many subscribers(user here is the channel)
+            // it collects all subscriptions whers this user is the channel
+            // This finds all subscriptions where the user is a channel (like "chai aur code") and gets a
+            //  list of people who subscribed to this channel.
+            // Find all users who subscribed to THIS user (the channel).
             $lookup: {
                 from: "subscriptions",
                 localField: "_id",
@@ -457,6 +465,9 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         },
         {
             // lookup used for joining, lookup returns data in array
+            //users._id == subscriptions.subscriber
+            // This finds which channels the user has subscribed to.
+            // Find all channels that THIS user has subscribed to.
             $lookup: {
                 from: "subscriptions",
                 localField: "_id",
@@ -469,6 +480,8 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             $addFields: {
                 subscribersCount: {
                     // we use $subscribers as subscribers has now become a field
+                    // subscriber is the array of documents that came from lookup and subscriber is a field in 
+                    // the document because after performing join the document will contain everything like user and ll
                     $size: "$subscribers"
                 },
                 channelsSubscribedToCount: {
@@ -476,6 +489,8 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 },
                 isSubscribed: {
                     $cond: {
+                        // if userid found in array of subscriber values then that channel is subscirbed
+                        // by the user
                         if: {$in: [req.user?. _id, "$subscribers.subscriber"]},
                         then: true,
                         else: false
@@ -515,6 +530,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
 const getWatchHistory = asyncHandler(async(req, res) => {
     const user = await User.aggregate([
         {
+            // match is equivalent to where clause
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user._id)
             }
